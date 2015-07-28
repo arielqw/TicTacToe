@@ -2,6 +2,7 @@
 var csp = require("csp");
 var p = csp.DiscreteProblem();
 
+
 // Defining board objects
 var cells = [];
 var cellsStrArr = [];
@@ -45,16 +46,33 @@ p.addConstraint(
 		return changedCount == maxChanges;
     }
 );
+//todo: should accept {constraint,object}
 
 // Add max Xs
 p.addConstraint(
     cellsStrArr,
     function(cell0, cell1, cell2, cell3, cell4, cell5, cell6, cell7, cell8, cell9) { 
-		return cell0.changed && cell0.value == "x";
+    	var ans = true;
+    	for(var i=0; i< arguments.length; i++){
+    		ans = ans || (arguments[i].changed && arguments[i].value == "x")
+    	}
+		return ans;
     }
 );
 
-console.log(p.getSolution());
+// if not changed, remain previous state
+p.addConstraint(
+    cellsStrArr,
+    function(cell0, cell1, cell2, cell3, cell4, cell5, cell6, cell7, cell8, cell9) { 
+    	
+    	for(var i=0; i< arguments.length; i++){
+    		if(!arguments[i].changed && arguments[i].value != "") return false;
+    	}
+		return true;
+    }
+);
+
+console.log(p.getSolutions());
 
 /* Usage example
 var p = csp.DiscreteProblem();
