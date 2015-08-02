@@ -196,6 +196,28 @@ function printBoard(){
 	console.log(str);
 }
 
+function checkWin(){
+	for(var linekey in lines) {
+		if(lines.hasOwnProperty(linekey)){
+			var xWin = true;
+			var oWin = true;
+			_.each(lines[linekey], function(cell){
+				xWin = xWin && lastState[cell+"$1"];
+				oWin = oWin && lastState[cell+"$2"];
+			});
+			if(xWin){
+				console.log("player X won!");
+				return true;
+			}
+			if(oWin){
+				console.log("player O won!");
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
 
 for(var i = 0; i < 9; i++){
 	console.log("Iteration: "+i);
@@ -217,5 +239,5 @@ for(var i = 0; i < 9; i++){
 	bp.reset();
 
 	printBoard();
-
+	if(checkWin()) break;
 }
