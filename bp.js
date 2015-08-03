@@ -1,5 +1,6 @@
 var Logic = require("logic-solver");
 var solver = new Logic.Solver();
+var solution;
 
 var objects = [];
 
@@ -16,11 +17,19 @@ function forbidConstraint(constraintFormula){
 }
 
 function getSolution(){
-	var solution = solver.solve();
+	solution = solver.solve();
 	if(solution != null){
-		return solver.solve().getMap();
+		return solution.getMap();
 	}
 	
+	return {};
+}
+
+function getFormula(){
+	if(solution != null){
+	console.log(solution.getFormula());
+		return solution.getFormula();
+	}
 	return {};
 }
 
@@ -33,3 +42,4 @@ module.exports.addObject = addObject;
 module.exports.addConstraint = addConstraint;
 module.exports.getSolution = getSolution;
 module.exports.reset = reset;
+module.exports.getFormula = getFormula;

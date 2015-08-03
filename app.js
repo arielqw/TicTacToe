@@ -151,6 +151,54 @@ function onlyAddingOs(){
 	bp.addConstraint(constraint);
 }
 
+ function attackForWin(){
+ 	var constraints = [];
+	for(var linekey in lines) {
+		if(lines.hasOwnProperty(linekey)){
+			var pos1 = lines[linekey][0];
+			var pos2 = lines[linekey][1];
+			var pos3 = lines[linekey][2];
+			
+			//for X and O: if 2 same and 1 empty in line -> require put third and win
+			for(var i = 1; i<=2; i++){
+				//e.g  - x x (or - o o .. depends on i)
+				if( lastState[pos1+"$0"] && lastState[pos2+"$"+i] && lastState[pos3+"$"+i] ) constraints.push( Logic.equiv(Logic.TRUE, pos1+"$"+i) );
+				//e.g x - x 
+				else if( lastState[pos1+"$"+i] && lastState[pos2+"$0"] && lastState[pos3+"$"+i] ) constraints.push( Logic.equiv(Logic.TRUE, pos2+"$"+i) );
+				//e.g - x x
+				else if( lastState[pos1+"$"+i] && lastState[pos2+"$"+i] && lastState[pos3+"$0"] ) constraints.push( Logic.equiv(Logic.TRUE, pos3+"$"+i) );	
+			}
+		}
+	}
+	var constraint = Logic.or.apply(Logic.or, constraints);
+	return constraint;
+}
+
+function defendToSurvive(){
+ 	var constraints = [];
+	for(var linekey in lines) {
+		if(lines.hasOwnProperty(linekey)){
+			var pos1 = lines[linekey][0];
+			var pos2 = lines[linekey][1];
+			var pos3 = lines[linekey][2];
+			
+			//for X and O: if 2 same and 1 empty in line -> require put third and win
+			for(var i = 1; i<=2; i++){
+				//e.g  - x x (or - o o .. depends on i)
+				if( lastState[pos1+"$0"] && lastState[pos2+"$"+i] && lastState[pos3+"$"+i] ) constraints.push( Logic.equiv(Logic.TRUE, pos1+"$"+(i == 1 ? 2 : 1)) );
+				//e.g x - x 
+				else if( lastState[pos1+"$"+i] && lastState[pos2+"$0"] && lastState[pos3+"$"+i] ) constraints.push( Logic.equiv(Logic.TRUE, pos2+"$"+(i == 1 ? 2 : 1)) );
+				//e.g - x x
+				else if( lastState[pos1+"$"+i] && lastState[pos2+"$"+i] && lastState[pos3+"$0"] ) constraints.push( Logic.equiv(Logic.TRUE, pos3+"$"+(i == 1 ? 2 : 1)) );	
+			}
+		}
+	}
+	var constraint = Logic.or.apply(Logic.or, constraints);
+	return constraint;
+}
+
+ 
+ // Utilities
 function checkError(cellName){
 	var empty = lastState[cellName+"$0"];
 	var x = lastState[cellName+"$1"];
@@ -219,6 +267,8 @@ function checkWin(){
 	return false;
 }
 
+ 
+ // Game simulation 
 for(var i = 0; i < 9; i++){
 	console.log("Iteration: "+i);
 	// game rules
@@ -233,9 +283,32 @@ for(var i = 0; i < 9; i++){
 	else{
 		onlyAddingOs();
 	}
-
 	var sol = bp.getSolution();
 	lastState = sol;
+	
+	var formula = bp.getFormula();
+	if(formula != {}){
+		//try with attack
+		bp.reset();
+		bp.addConstraint(formula);
+		bp.addConstraint(attackForWin());
+		sol = bp.getSolution();
+		//if can attack -> go for it
+		if(sol != {}){
+			lastState = sol;
+		}
+		//otherwise -> try to defend
+		else{
+			bp.reset();
+			bp.addConstraint(formula);
+			bp.addConstraint(defendToSurvive());
+			sol = bp.getSolution();
+			if(sol != {}){
+				lastState = sol;
+			}
+		}
+		// otherwise stay the same (random put)
+	}
 	bp.reset();
 
 	printBoard();
