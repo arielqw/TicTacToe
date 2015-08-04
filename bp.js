@@ -1,8 +1,8 @@
 var Logic = require("logic-solver");
 var solver = new Logic.Solver();
-var solution;
 
 var objects = [];
+var solution = null;
 
 function addObject(name, numOfBits){
 	objects[name] = Logic.variableBits(name, numOfBits);
@@ -17,7 +17,9 @@ function forbidConstraint(constraintFormula){
 }
 
 function getSolution(){
-	solution = solver.solve();
+	if(solution == null){
+		solution = solver.solve();
+	}
 	if(solution != null){
 		return solution.getMap();
 	}
@@ -25,16 +27,19 @@ function getSolution(){
 	return {};
 }
 
-function getFormula(){
-	if(solution != null){
-	console.log(solution.getFormula());
-		return solution.getFormula();
+function minimizeWeightedSum(formulas, weights){
+	getSolution();
+	solution = solver.minimizeWeightedSum(solution, formulas, weights);
+	if(solution != {}){
+		return solver.solve().getMap();
 	}
+	
 	return {};
 }
 
 function reset(){
 	solver = new Logic.Solver();
+	solution = null;
 }
 
 module.exports.Logic = Logic;
@@ -42,4 +47,4 @@ module.exports.addObject = addObject;
 module.exports.addConstraint = addConstraint;
 module.exports.getSolution = getSolution;
 module.exports.reset = reset;
-module.exports.getFormula = getFormula;
+module.exports.minimizeWeightedSum = minimizeWeightedSum;

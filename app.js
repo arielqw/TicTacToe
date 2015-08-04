@@ -6,27 +6,35 @@ var lastState = {
   'cell-1$1': false,
   'cell-1$2': false,
   'cell-1$0': true,
+
   'cell-2$1': false,
   'cell-2$2': false,
   'cell-2$0': true,
+
   'cell-3$1': false,
-  'cell-3$2': false,
-  'cell-3$0': true,
+  'cell-3$2': true,
+  'cell-3$0': false,
+
   'cell-4$1': false,
   'cell-4$2': false,
   'cell-4$0': true,
+
   'cell-5$1': false,
   'cell-5$2': false,
   'cell-5$0': true,
+
   'cell-6$1': false,
-  'cell-6$2': false,
-  'cell-6$0': true,
-  'cell-7$1': false,
+  'cell-6$2': true,
+  'cell-6$0': false,
+
+  'cell-7$1': true,
   'cell-7$2': false,
-  'cell-7$0': true,
+  'cell-7$0': false,
+
   'cell-8$1': false,
   'cell-8$2': false,
   'cell-8$0': true,
+
   'cell-9$1': false,
   'cell-9$2': false,
   'cell-9$0': true };
@@ -151,54 +159,8 @@ function onlyAddingOs(){
 	bp.addConstraint(constraint);
 }
 
- function attackForWin(){
- 	var constraints = [];
-	for(var linekey in lines) {
-		if(lines.hasOwnProperty(linekey)){
-			var pos1 = lines[linekey][0];
-			var pos2 = lines[linekey][1];
-			var pos3 = lines[linekey][2];
-			
-			//for X and O: if 2 same and 1 empty in line -> require put third and win
-			for(var i = 1; i<=2; i++){
-				//e.g  - x x (or - o o .. depends on i)
-				if( lastState[pos1+"$0"] && lastState[pos2+"$"+i] && lastState[pos3+"$"+i] ) constraints.push( Logic.equiv(Logic.TRUE, pos1+"$"+i) );
-				//e.g x - x 
-				else if( lastState[pos1+"$"+i] && lastState[pos2+"$0"] && lastState[pos3+"$"+i] ) constraints.push( Logic.equiv(Logic.TRUE, pos2+"$"+i) );
-				//e.g - x x
-				else if( lastState[pos1+"$"+i] && lastState[pos2+"$"+i] && lastState[pos3+"$0"] ) constraints.push( Logic.equiv(Logic.TRUE, pos3+"$"+i) );	
-			}
-		}
-	}
-	var constraint = Logic.or.apply(Logic.or, constraints);
-	return constraint;
-}
 
-function defendToSurvive(){
- 	var constraints = [];
-	for(var linekey in lines) {
-		if(lines.hasOwnProperty(linekey)){
-			var pos1 = lines[linekey][0];
-			var pos2 = lines[linekey][1];
-			var pos3 = lines[linekey][2];
-			
-			//for X and O: if 2 same and 1 empty in line -> require put third and win
-			for(var i = 1; i<=2; i++){
-				//e.g  - x x (or - o o .. depends on i)
-				if( lastState[pos1+"$0"] && lastState[pos2+"$"+i] && lastState[pos3+"$"+i] ) constraints.push( Logic.equiv(Logic.TRUE, pos1+"$"+(i == 1 ? 2 : 1)) );
-				//e.g x - x 
-				else if( lastState[pos1+"$"+i] && lastState[pos2+"$0"] && lastState[pos3+"$"+i] ) constraints.push( Logic.equiv(Logic.TRUE, pos2+"$"+(i == 1 ? 2 : 1)) );
-				//e.g - x x
-				else if( lastState[pos1+"$"+i] && lastState[pos2+"$"+i] && lastState[pos3+"$0"] ) constraints.push( Logic.equiv(Logic.TRUE, pos3+"$"+(i == 1 ? 2 : 1)) );	
-			}
-		}
-	}
-	var constraint = Logic.or.apply(Logic.or, constraints);
-	return constraint;
-}
 
- 
- // Utilities
 function checkError(cellName){
 	var empty = lastState[cellName+"$0"];
 	var x = lastState[cellName+"$1"];
@@ -267,8 +229,44 @@ function checkWin(){
 	return false;
 }
 
- 
- // Game simulation 
+function attack(){
+	var formulas = [];
+	for(var linekey in lines) {
+		var pos1 = lines[linekey][0];
+		var pos2 = lines[linekey][1];
+		var pos3 = lines[linekey][2];
+		
+		formulas.push( 
+			Logic.or(
+				// - o o
+				Logic.and(pos1+"$0",pos2+"$2",pos3+"$2"),
+				Logic.and(pos1+"$2",pos2+"$0",pos3+"$2"),
+				Logic.and(pos1+"$2",pos2+"$2",pos3+"$0")
+			)			
+		);					
+	}
+	return bp.minimizeWeightedSum(formulas, 1);
+}
+
+function defend(){
+	var formulas = [];
+	for(var linekey in lines) {
+		var pos1 = lines[linekey][0];
+		var pos2 = lines[linekey][1];
+		var pos3 = lines[linekey][2];
+		
+		formulas.push( 
+			Logic.or(
+				// - o o
+				Logic.and(pos1+"$0",pos2+"$1",pos3+"$1"),
+				Logic.and(pos1+"$1",pos2+"$0",pos3+"$1"),
+				Logic.and(pos1+"$1",pos2+"$1",pos3+"$0")
+			)			
+		);					
+	}
+	return bp.minimizeWeightedSum(formulas, 1);
+}
+
 for(var i = 0; i < 9; i++){
 	console.log("Iteration: "+i);
 	// game rules
@@ -279,36 +277,16 @@ for(var i = 0; i < 9; i++){
 	// player turn
 	if(i%2 == 0){
 		onlyAddingXs();
+
 	}
 	else{
 		onlyAddingOs();
+		defend();
+		attack();
 	}
-	var sol = bp.getSolution();
-	lastState = sol;
-	
-	var formula = bp.getFormula();
-	if(formula != {}){
-		//try with attack
-		bp.reset();
-		bp.addConstraint(formula);
-		bp.addConstraint(attackForWin());
-		sol = bp.getSolution();
-		//if can attack -> go for it
-		if(sol != {}){
-			lastState = sol;
-		}
-		//otherwise -> try to defend
-		else{
-			bp.reset();
-			bp.addConstraint(formula);
-			bp.addConstraint(defendToSurvive());
-			sol = bp.getSolution();
-			if(sol != {}){
-				lastState = sol;
-			}
-		}
-		// otherwise stay the same (random put)
-	}
+
+	lastState = bp.getSolution();
+
 	bp.reset();
 
 	printBoard();
